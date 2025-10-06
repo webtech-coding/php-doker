@@ -4,7 +4,7 @@ services:
     build:
       context: .              # Build context is current directory
       dockerfile: docker/php/Dockerfile
-    container_name: php83_app # Name our container
+    container_name: php-vm # Name our container
     volumes:
       - ./src:/var/www   # Mount our source code
     networks:
@@ -17,7 +17,7 @@ services:
   # Nginx Service
   nginx:
     image: nginx:latest      # Use official Nginx image
-    container_name: nginx_app
+    container_name: nginx-vm
     ports:
       - "8080:80"           # Map port 8080 on our PC to 80 in container
     volumes:
@@ -28,7 +28,47 @@ services:
     networks:
       - app-network
     restart: unless-stopped
+  
+  #mysql
+  # Use root/example as user/password credentials
+
+  db:
+    image: mysql
+    restart: always
+    container_name: database-vm
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: php-blog
+      MYSQL_USER: root-user
+      MYSQL_PASSWORD: root-password
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - app-network
+    depends_on:
+      - php
+      - nginx
+
+  database-gui:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin-vm
+    environment:
+      PMA_HOST: db          # Connect to MySQL service
+      PMA_PORT: 3306
+      PMA_USER: root-user
+      PMA_PASSWORD: root-password
+    ports:
+      - "8090:80"                  # Access phpMyAdmin on localhost:8080
+    depends_on:
+      - db
+    networks:
+      - app-network
 
 networks:
   app-network:
     driver: bridge          # Standard Docker network type
+
+volumes:
+  db_data:
